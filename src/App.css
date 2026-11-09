@@ -1,0 +1,345 @@
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: Arial, sans-serif;
+  background: #f8f9fc;
+  color: #171923;
+}
+
+.navbar {
+  height: 75px;
+  padding: 0 8%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: white;
+}
+
+.logo, footer h2 {
+  font-size: 23px;
+}
+
+.logo span, footer h2 span {
+  color: #6956d8;
+}
+
+.nav-links {
+  display: flex;
+  gap: 35px;
+}
+
+.nav-links a, .section-heading a {
+  text-decoration: none;
+  color: #555;
+  font-size: 14px;
+}
+
+.login-btn, .explore-btn {
+  background: #6956d8;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.hero {
+  text-align: center;
+  padding: 100px 20px 110px;
+  background: linear-gradient(135deg, #eeecff, #f8f9fc);
+}
+
+.tagline {
+  color: #6956d8;
+  font-size: 12px;
+  font-weight: bold;
+  letter-spacing: 2px;
+  margin-bottom: 20px;
+}
+
+.hero h1 {
+  font-size: clamp(38px, 6vw, 65px);
+  line-height: 1.15;
+  margin-bottom: 20px;
+}
+
+.hero h1 span {
+  color: #6956d8;
+}
+
+.hero-description {
+  max-width: 570px;
+  margin: 0 auto 30px;
+  color: #666;
+  line-height: 1.8;
+}
+
+.events-section {
+  padding: 75px 8%;
+}
+
+.section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 35px;
+}
+
+.section-heading h2 {
+  font-size: 32px;
+}
+
+.events-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 25px;
+}
+
+.event-card {
+  background: white;
+  padding: 25px;
+  border: 1px solid #eee;
+  border-radius: 14px;
+  transition: 0.3s;
+}
+
+.event-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 10px 30px #0000000d;
+}
+
+.event-icon {
+  font-size: 35px;
+  margin-bottom: 20px;
+}
+
+.event-category {
+  background: #eeecff;
+  color: #6956d8;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+}
+
+.event-card h3 {
+  margin: 20px 0;
+  font-size: 19px;
+}
+
+.event-card p {
+  color: #666;
+  font-size: 13px;
+  margin: 12px 0;
+}
+
+.register-btn {
+  width: 100%;
+  margin-top: 15px;
+  padding: 12px;
+  border: 1px solid #6956d8;
+  color: #6956d8;
+  background: white;
+  border-radius: 7px;
+  cursor: pointer;
+}
+
+.register-btn:hover {
+  background: #6956d8;
+  color: white;
+}
+
+footer {
+  background: #171923;
+  color: white;
+  text-align: center;
+  padding: 45px 20px;
+}
+
+footer p {
+  color: #aaa;
+  margin-top: 15px;
+  font-size: 13px;
+}
+
+@media (max-width: 768px) {
+  .navbar {
+    padding: 15px 5%;
+    height: auto;
+    flex-wrap: wrap;
+    gap: 15px;
+  }
+
+  .nav-links {
+    gap: 15px;
+    order: 3;
+    width: 100%;
+    justify-content: center;
+  }
+
+  .events-section {
+    padding: 50px 5%;
+  }
+
+  .events-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .hero {
+    padding: 75px 20px;
+  }
+}
+
+/* Theme toggle */
+
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.theme-switch {
+  width: 58px;
+  height: 30px;
+  padding: 3px;
+  border: none;
+  border-radius: 30px;
+  background: #dedee8;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  transition: 0.3s;
+}
+
+.switch-circle {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  transition: 0.3s;
+}
+
+.theme-switch.active {
+  background: #a78bfa;
+}
+
+.theme-switch.active .switch-circle {
+  transform: translateX(28px);
+  background: #292044;
+  color: white;
+}
+
+/* Glass theme */
+
+.glass-theme {
+  min-height: 100vh;
+  color: white;
+  background:
+    radial-gradient(ellipse at 15% 15%, #a855f7 0%, transparent 40%),
+    radial-gradient(ellipse at 85% 35%, #6941c6 0%, transparent 40%),
+    radial-gradient(ellipse at 50% 90%, #37205f 0%, transparent 45%),
+    #17102c;
+  background-attachment: fixed;
+}
+
+.glass-theme .navbar {
+  background: rgba(255, 255, 255, 0.07);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border-bottom: 1px solid rgba(255,255,255,0.12);
+}
+
+.glass-theme .logo,
+.glass-theme .nav-links a,
+.glass-theme .section-heading a {
+  color: white;
+}
+
+.glass-theme .hero {
+  background: transparent;
+}
+
+.glass-theme .hero-description {
+  color: #e0d8f3;
+}
+
+.glass-theme .events-section {
+  background: transparent;
+}
+
+.glass-theme .section-heading h2 {
+  color: white;
+}
+
+.glass-theme .event-card {
+  background: rgba(255,255,255,0.09);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255,255,255,0.2);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+  color: white;
+}
+
+.glass-theme .event-card h3 {
+  color: white;
+}
+
+.glass-theme .event-card p {
+  color: #e0d8f3;
+}
+
+.glass-theme .event-category {
+  background: rgba(192, 132, 252, 0.2);
+  color: #e9d5ff;
+}
+
+.glass-theme .register-btn {
+  background: rgba(255,255,255,0.1);
+  color: white;
+  border-color: rgba(255,255,255,0.35);
+}
+
+.glass-theme .register-btn:hover {
+  background: #a78bfa;
+}
+
+.glass-theme footer {
+  background: rgba(0,0,0,0.18);
+  border-top: 1px solid rgba(255,255,255,0.12);
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+}
+
+.logo-icon {
+  width: 45px;
+  height: 45px;
+  object-fit: contain;
+  display: block;
+}
+
+.brand h2 {
+  margin: 0;
+  font-size: 24px;
+  color: #222;
+}
+
+.brand h2 span {
+  color: #8b5cf6;
+}
