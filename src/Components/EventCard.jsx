@@ -1,12 +1,9 @@
-
-function EventCard({ event }) {
+function EventCard({ event, onViewDetails }) {
   return (
     <div className="event-card">
       <div className="event-icon">{event.icon}</div>
 
-      <span className="event-category">
-        {event.category}
-      </span>
+      <span className="event-category">{event.category}</span>
 
       <h3>{event.title}</h3>
 
@@ -14,7 +11,10 @@ function EventCard({ event }) {
       <p>📍 {event.venue}</p>
       <p>🏫 {event.organizer}</p>
 
-      <button className="register-btn">
+      <button
+        className="register-btn"
+        onClick={() => onViewDetails(event)}
+      >
         View Details →
       </button>
     </div>

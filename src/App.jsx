@@ -5,12 +5,12 @@ import Navbar from "./Components/Navebar";
 import Hero from "./Components/Hero";
 import EventCard from "./Components/EventCard";
 import Footer from "./Components/Footer";
-
+import EventDetailsModal from "./Components/EventDetailsModal";
 import events from "./data/events";
 
 function App() {
   const [glassMode, setGlassMode] = useState(false);
-
+  const [selectedEvent, setSelectedEvent] = useState(null);
   return (
     <div className={glassMode ? "app glass-theme" : "app"}>
 
@@ -33,15 +33,22 @@ function App() {
         </div>
 
         <div className="events-grid">
-          {events.map((event) => (
-            <EventCard key={event.id} event={event} />
-          ))}
+         {events.map((event) => (
+  <EventCard
+    key={event.id}
+    event={event}
+    onViewDetails={setSelectedEvent}
+  />
+))}
         </div>
 
       </section>
 
       <Footer />
-
+<EventDetailsModal
+  event={selectedEvent}
+  onClose={() => setSelectedEvent(null)}
+/>
     </div>
   );
 }

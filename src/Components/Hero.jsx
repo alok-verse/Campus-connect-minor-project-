@@ -7,7 +7,7 @@ function Hero() {
       <h1>
         Discover Events.
         <br />
-        <span>SBU Edition</span>
+        <span>Connect & Grow.</span>
       </h1>
 
       <p className="hero-description">
