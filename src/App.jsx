@@ -1,56 +1,58 @@
+import { BrowserRouter, Route, Routes } from "react-router-dom";
+import AuthProvider from "./context/AuthProvider";
+import UIProvider from "./context/UIProvider";
+import { RequireAdmin, RequireStudent, ScrollToTop } from "./components/RouteGuards";
+import LoginPage from "./pages/LoginPage";
+import NotFound from "./pages/NotFound";
+import AdminDashboard from "./admin/AdminDashboard";
+import StudentLayout from "./student/StudentLayout";
+import Home from "./student/pages/Home";
+import Events from "./student/pages/Events";
+import MyEvents from "./student/pages/MyEvents";
+import Notifications from "./student/pages/Notifications";
+import Certificates from "./student/pages/Certificates";
+import EditProfile from "./student/pages/EditProfile";
+import About from "./student/pages/About";
 
-import { useState } from "react";
-import "./App.css";
-import Navbar from "./Components/Navebar";
-import Hero from "./Components/Hero";
-import EventCard from "./Components/EventCard";
-import Footer from "./Components/Footer";
-import EventDetailsModal from "./Components/EventDetailsModal";
-import events from "./data/events";
+/*
+  One app, two sides:
+    /        student site (public to browse, login needed to register)
+    /login   student + faculty/admin login
+    /admin   admin panel (admin login required)
+*/
 
-function App() {
-  const [glassMode, setGlassMode] = useState(false);
-  const [selectedEvent, setSelectedEvent] = useState(null);
+export default function App() {
   return (
-    <div className={glassMode ? "app glass-theme" : "app"}>
+    <BrowserRouter>
+      <UIProvider>
+        <AuthProvider>
+          <ScrollToTop />
+          <Routes>
+            <Route path="/login" element={<LoginPage />} />
 
-      <Navbar
-        glassMode={glassMode}
-        onToggle={() => setGlassMode(!glassMode)}
-      />
+            <Route
+              path="/admin"
+              element={
+                <RequireAdmin>
+                  <AdminDashboard />
+                </RequireAdmin>
+              }
+            />
 
-      <Hero />
+            <Route element={<StudentLayout />}>
+              <Route index element={<Home />} />
+              <Route path="events" element={<Events />} />
+              <Route path="about" element={<About />} />
+              <Route path="my-events" element={<RequireStudent><MyEvents /></RequireStudent>} />
+              <Route path="notifications" element={<RequireStudent><Notifications /></RequireStudent>} />
+              <Route path="certificates" element={<RequireStudent><Certificates /></RequireStudent>} />
+              <Route path="profile" element={<RequireStudent><EditProfile /></RequireStudent>} />
+            </Route>
 
-      <section className="events-section" id="events">
-
-        <div className="section-heading">
-          <div>
-            <p className="tagline">WHAT'S HAPPENING?</p>
-            <h2>Upcoming Events</h2>
-          </div>
-
-          <a href="#events">View All →</a>
-        </div>
-
-        <div className="events-grid">
-         {events.map((event) => (
-  <EventCard
-    key={event.id}
-    event={event}
-    onViewDetails={setSelectedEvent}
-  />
-))}
-        </div>
-
-      </section>
-
-      <Footer />
-<EventDetailsModal
-  event={selectedEvent}
-  onClose={() => setSelectedEvent(null)}
-/>
-    </div>
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </AuthProvider>
+      </UIProvider>
+    </BrowserRouter>
   );
 }
-
-export default App;

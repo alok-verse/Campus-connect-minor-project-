@@ -1,0 +1,35 @@
+.nf-page {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: linear-gradient(135deg, #eeecff, #f8f9fc);
+}
+
+.nf-card {
+  width: min(440px, 100%);
+  padding: 40px 28px;
+  text-align: center;
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: 0 20px 60px rgba(60, 40, 140, 0.12);
+}
+
+.nf-card img { width: 56px; height: 56px; border-radius: 14px; }
+.nf-code { margin-top: 18px; color: #6956d8; font-size: 14px; font-weight: 800; letter-spacing: 3px; }
+.nf-card h1 { margin: 8px 0 10px; font-size: 28px; color: #171923; }
+.nf-card p:not(.nf-code) { color: #5f6475; line-height: 1.7; font-size: 14px; }
+
+.nf-link {
+  display: inline-block;
+  margin-top: 24px;
+  padding: 12px 24px;
+  border-radius: 10px;
+  background: #6956d8;
+  color: #fff;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.nf-link:hover { background: #5744c4; }
