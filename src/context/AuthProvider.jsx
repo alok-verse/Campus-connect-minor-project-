@@ -1,57 +1,136 @@
+
 import { useCallback, useMemo } from "react";
 import { AuthContext } from "./auth-context";
 import { KEYS } from "../config";
 import { EMPTY_OBJECT, useStored } from "../utils/storage";
 import { createStudent } from "../utils/student";
-
-/*
-  Demo authentication (no backend): the student and admin sessions are kept in
-  localStorage independently, so you can be logged in as both in different tabs.
-*/
+import { loginUser } from "../services/authApi";
 
 export default function AuthProvider({ children }) {
-  const [studentId, setStudentId] = useStored(KEYS.studentSession, null);
-  const [isAdmin, setIsAdmin] = useStored(KEYS.adminSession, false);
-  const [profiles, setProfiles] = useStored(KEYS.students, EMPTY_OBJECT);
+  const [studentSession, setStudentSession] = useStored(
+    "campus_student_auth_v1", null
+  );
 
-  const student = studentId ? profiles[studentId] ?? null : null;
+  const [adminSession, setAdminSession] = useStored(
+    "campus_admin_auth_v1", null
+  );
 
+  const [profiles, setProfiles] = useStored(
+    KEYS.students, EMPTY_OBJECT
+  );
+
+  const studentId = studentSession?.user?.studentId;
+
+  const student = studentId
+    ? profiles[studentId] ?? studentSession.user
+    : null;
+
+  const isAdmin = Boolean(
+    adminSession?.token &&
+    adminSession?.user?.role === "admin"
+  );
+
+  // Real student authentication
   const loginStudent = useCallback(
-    (id) => {
-      // Keep an existing profile (edited name, year...) when the student logs in again.
-      setProfiles((current) => ({ ...current, [id]: current[id] ?? createStudent(id) }));
-      setStudentId(id);
+    async (id, password) => {
+      const data = await loginUser({
+        studentId: id,
+        password,
+        role: "student"
+      });
+
+      setProfiles((current) => ({
+        ...current,
+        [id]: {
+          ...createStudent(id),
+          ...current[id],
+          ...data.user
+        }
+      }));
+
+      setStudentSession({
+        token: data.token,
+        user: data.user
+      });
+
+      return data;
     },
-    [setProfiles, setStudentId]
+    [setProfiles, setStudentSession]
+  );
+
+  // Real admin authentication
+  const loginAdmin = useCallback(
+    async (email, password) => {
+      const data = await loginUser({
+        email,
+        password,
+        role: "admin"
+      });
+
+      setAdminSession({
+        token: data.token,
+        user: data.user
+      });
+
+      return data;
+    },
+    [setAdminSession]
   );
 
   const updateStudent = useCallback(
     (patch) => {
       if (!studentId) return false;
+
       return setProfiles((current) => ({
         ...current,
-        [studentId]: { ...current[studentId], ...patch },
+        [studentId]: {
+          ...current[studentId],
+          ...patch
+        }
       }));
     },
     [studentId, setProfiles]
   );
 
-  const logoutStudent = useCallback(() => setStudentId(null), [setStudentId]);
-  const loginAdmin = useCallback(() => setIsAdmin(true), [setIsAdmin]);
-  const logoutAdmin = useCallback(() => setIsAdmin(false), [setIsAdmin]);
+  const logoutStudent = useCallback(
+    () => setStudentSession(null),
+    [setStudentSession]
+  );
+
+  const logoutAdmin = useCallback(
+    () => setAdminSession(null),
+    [setAdminSession]
+  );
 
   const value = useMemo(
     () => ({
       student,
-      isAdmin: Boolean(isAdmin),
+      isAdmin,
+      admin: adminSession?.user ?? null,
+      studentToken: studentSession?.token ?? null,
+      adminToken: adminSession?.token ?? null,
       loginStudent,
+      loginAdmin,
       updateStudent,
       logoutStudent,
-      loginAdmin,
-      logoutAdmin,
+      logoutAdmin
     }),
-    [student, isAdmin, loginStudent, updateStudent, logoutStudent, loginAdmin, logoutAdmin]
+    [
+      student,
+      isAdmin,
+      studentSession,
+      adminSession,
+      loginStudent,
+      loginAdmin,
+      updateStudent,
+      logoutStudent,
+      logoutAdmin
+    ]
   );
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  );
 }
