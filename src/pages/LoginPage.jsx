@@ -86,12 +86,16 @@ export default function LoginPage() {
         </Link>
 
         <button
-          className="login-theme-toggle"
-          type="button"
-          onClick={() => setDarkMode((value) => !value)}
-        >
-          {darkMode ? "☀️ Light Mode" : "🌙 Dark Mode"}
-        </button>
+  type="button"
+  className={`login-theme-toggle ${darkMode ? "active" : ""}`}
+  onClick={() => setDarkMode(value => !value)}
+  aria-label="Toggle dark mode"
+  aria-pressed={darkMode}
+>
+  <span className="login-switch-circle">
+    {darkMode ? "☾" : "☀"}
+  </span>
+</button>
       </header>
 
       <main className="login-main">

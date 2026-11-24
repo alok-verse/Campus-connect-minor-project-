@@ -273,3 +273,289 @@
   .login-card { padding: 24px 18px; }
   .login-role-switch button { font-size: 11.5px; }
 }
+
+/* University login background */
+
+.login-page {
+  background:
+    linear-gradient(
+      90deg,
+      rgba(10, 8, 25, 0.35),
+      rgba(10, 8, 25, 0.60)
+    ),
+    url("/sbu-login-background.webp") center / cover no-repeat;
+
+  background-attachment: fixed;
+}
+
+/* Dark mode background */
+
+.login-page.login-dark {
+  background:
+    linear-gradient(
+      90deg,
+      rgba(10, 8, 25, 0.55),
+      rgba(10, 8, 25, 0.75)
+    ),
+    url("/sbu-login-background.webp") center / cover no-repeat;
+
+  background-attachment: fixed;
+}
+
+/* Navbar */
+
+.login-navbar {
+  background: rgba(15, 10, 35, 0.25);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.login-brand,
+.login-brand > span span {
+  color: white;
+}
+
+/* Position login card on right */
+
+.login-main {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  padding: 45px 7%;
+}
+
+/* Hide introduction to showcase campus */
+
+.login-intro {
+  display: none;
+}
+
+/* Glass login card */
+
+.login-card {
+  max-width: 440px;
+  width: 100%;
+  padding: 32px;
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 24px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+}
+
+/* Dark glass card */
+
+.login-dark .login-card {
+  background: rgba(25, 15, 45, 0.88);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+/* Footer */
+
+.login-footer {
+  color: white;
+  background: rgba(10, 8, 25, 0.25);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+/* Tablet and mobile */
+
+@media (max-width: 900px) {
+  .login-page,
+  .login-page.login-dark {
+    background-attachment: scroll;
+    background-position: center;
+  }
+
+  .login-main {
+    justify-content: center;
+    padding: 35px 5%;
+  }
+
+  .login-card {
+    margin: 0 auto;
+  }
+}
+
+@media (max-width: 520px) {
+  .login-main {
+    padding: 25px 4%;
+  }
+
+  .login-card {
+    padding: 24px 18px;
+    border-radius: 18px;
+  }
+
+  .login-brand {
+    font-size: 16px;
+  }
+
+  .login-form input {
+    font-size: 16px;
+  }
+}
+/* Homepage-style theme toggle */
+.login-theme-toggle {
+  width: 56px;
+  height: 30px;
+  padding: 3px;
+  border: none;
+  border-radius: 30px;
+  background: #dedee8;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.login-switch-circle {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: #fff;
+  color: #444;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  transition: transform 0.3s, background 0.3s;
+}
+
+.login-theme-toggle.active {
+  background: #a78bfa;
+}
+
+.login-theme-toggle.active .login-switch-circle {
+  transform: translateX(26px);
+  background: #292044;
+  color: #fff;
+}
+
+/* University login background */
+
+.login-page {
+  background:
+    linear-gradient(
+      90deg,
+      rgba(10, 8, 25, 0.35),
+      rgba(10, 8, 25, 0.60)
+    ),
+    url("/sbu-login-background.webp") center / cover no-repeat;
+
+  background-attachment: fixed;
+}
+
+/* Dark mode background */
+
+.login-page.login-dark {
+  background:
+    linear-gradient(
+      90deg,
+      rgba(10, 8, 25, 0.55),
+      rgba(10, 8, 25, 0.75)
+    ),
+    url("/sbu-login-background.webp") center / cover no-repeat;
+
+  background-attachment: fixed;
+}
+
+/* Navbar */
+
+.login-navbar {
+  background: rgba(15, 10, 35, 0.25);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.login-brand,
+.login-brand > span span {
+  color: white;
+}
+
+/* Position login card on right */
+
+.login-main {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  padding: 45px 7%;
+}
+
+/* Hide introduction to showcase campus */
+
+.login-intro {
+  display: none;
+}
+
+/* Glass login card */
+
+.login-card {
+  max-width: 440px;
+  width: 100%;
+  padding: 32px;
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 24px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+}
+
+/* Dark glass card */
+
+.login-dark .login-card {
+  background: rgba(25, 15, 45, 0.88);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+/* Footer */
+
+.login-footer {
+  color: white;
+  background: rgba(10, 8, 25, 0.25);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+/* Tablet and mobile */
+
+@media (max-width: 900px) {
+  .login-page,
+  .login-page.login-dark {
+    background-attachment: scroll;
+    background-position: center;
+  }
+
+  .login-main {
+    justify-content: center;
+    padding: 35px 5%;
+  }
+
+  .login-card {
+    margin: 0 auto;
+  }
+}
+
+@media (max-width: 520px) {
+  .login-main {
+    padding: 25px 4%;
+  }
+
+  .login-card {
+    padding: 24px 18px;
+    border-radius: 18px;
+  }
+
+  .login-brand {
+    font-size: 16px;
+  }
+
+  .login-form input {
+    font-size: 16px;
+  }
+}
