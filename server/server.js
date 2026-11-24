@@ -3,10 +3,22 @@ const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
 const mongoose = require("mongoose");
-const connectDB = require("./config/db");
 
 dotenv.config();
 
+// Database connection
+const connectDB = require("./config/db");
+
+// Database models
+require("./models/User");
+require("./models/Event");
+require("./models/Registration");
+require("./models/Notification");
+
+// Import routes
+const authRoutes = require("./routes/authRoutes");
+
+// Initialize Express
 const app = express();
 
 // Middleware
@@ -15,6 +27,9 @@ app.use(cors({
 }));
 
 app.use(express.json());
+
+// Authentication routes
+app.use("/api/auth", authRoutes);
 
 // Default route
 app.get("/", (req, res) => {
