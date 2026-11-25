@@ -9,7 +9,14 @@ import { useUI } from "../context/useUI";
 import { EMPTY_LIST, useStored } from "../utils/storage";
 import { formatDate, formatTime, nowLabel, todayISO } from "../utils/dates";
 import { downloadCSV } from "../utils/csv";
-import { clearEventData, loadSampleData } from "../utils/seed";
+import {
+  getAdminEvents,
+  createEvent,
+  updateEvent,
+  archiveEvent as archiveEventApi,
+  deleteEvent as deleteEventApi,
+} from "../services/eventApi";
+import { toBackendEvent, toFrontendEvent } from "../utils/eventMapper";
 
 const emptyNotification = {
   title: "",
@@ -22,13 +29,17 @@ const emptyNotification = {
 
 function AdminDashboard() {
   const navigate = useNavigate();
-  const { logoutAdmin } = useAuth();
+  const { logoutAdmin, adminToken } = useAuth();
   const { toast, confirm } = useUI();
 
   const [activeTab, setActiveTab] = useState("Dashboard");
   const [menuOpen, setMenuOpen] = useState(false);
-  const [events, setEvents] = useStored(KEYS.events, EMPTY_LIST);
-  const [archivedEvents, setArchivedEvents] = useStored(KEYS.archive, EMPTY_LIST);
+  const [events, setEvents] = useState([]);
+  const [archivedEvents, setArchivedEvents] = useState([]);
+  const [loadingEvents, setLoadingEvents] = useState(true);
+  const [eventError, setEventError] = useState("");
+  const [reloadKey, setReloadKey] = useState(0);
+  const [busyEvent, setBusyEvent] = useState(false);
   const [notifications, setNotifications] = useStored(KEYS.notifications, EMPTY_LIST);
   const [registrations] = useStored(KEYS.registrations, EMPTY_LIST);
   const [darkMode, setDarkMode] = useStored(KEYS.adminTheme, false);
@@ -42,6 +53,27 @@ function AdminDashboard() {
   useEffect(() => {
     document.title = "Admin Panel | Campus Connect";
   }, []);
+
+  useEffect(() => {
+    let active = true;
+    setLoadingEvents(true);
+    setEventError("");
+    async function load() {
+      try {
+        if (!adminToken) throw new Error("Please log in again.");
+        const data = (await getAdminEvents(adminToken)).map(toFrontendEvent);
+        if (!active) return;
+        setEvents(data.filter(event => !event.archived));
+        setArchivedEvents(data.filter(event => event.archived));
+      } catch (error) {
+        if (active) setEventError(error.message || "Could not load events.");
+      } finally {
+        if (active) setLoadingEvents(false);
+      }
+    }
+    load();
+    return () => { active = false; };
+  }, [adminToken, reloadKey]);
 
   // Close the mobile menu with Escape.
   useEffect(() => {
@@ -74,56 +106,74 @@ function AdminDashboard() {
 
   /* ---------- events ---------- */
 
-  const addEvent = (event) => {
-    const saved = setEvents((previous) => [{ ...event, archived: false }, ...previous]);
-    if (saved) {
-      setEventFilter("All");
-      goTo("My Events");
-    }
-    return saved;
+  const addEvent = async (event) => {
+    if (!adminToken) throw new Error("Please log in again.");
+    const saved = toFrontendEvent(await createEvent(toBackendEvent(event), adminToken));
+    setEvents(previous => [saved, ...previous.filter(item => item.id !== saved.id)]);
+    setEventFilter("All");
+    goTo("My Events");
+    return true;
   };
 
   const archiveEvent = async (id) => {
-    const event = events.find((item) => item.id === id);
-    if (!event) return;
-
-    const yes = await confirm({
-      title: "Archive this event?",
-      message:
-        "It will be hidden from students but stay in Event History and Total Events. You can restore it later.",
-      confirmText: "Archive",
-      danger: true,
-    });
-    if (!yes) return;
-
-    setArchivedEvents((previous) => [
-      { ...event, archived: true, archivedAt: new Date().toLocaleDateString() },
-      ...previous,
-    ]);
-    setEvents((previous) => previous.filter((item) => item.id !== id));
-    toast("Event archived.", "info");
+    if (busyEvent || !events.some(item => item.id === id)) return;
+    setBusyEvent(true);
+    try {
+      const yes = await confirm({
+        title: "Archive this event?",
+        message: "It will be hidden from students but stay in Event History and Total Events. You can restore it later.",
+        confirmText: "Archive",
+        danger: true,
+      });
+      if (!yes) return;
+      const saved = toFrontendEvent(await archiveEventApi(id, adminToken));
+      setArchivedEvents(previous => [saved, ...previous.filter(item => item.id !== id)]);
+      setEvents(previous => previous.filter(item => item.id !== id));
+      toast("Event archived.", "info");
+    } catch (error) {
+      toast(error.message || "Could not archive event.", "error");
+    } finally { setBusyEvent(false); }
   };
 
-  const restoreEvent = (id) => {
-    const event = archivedEvents.find((item) => item.id === id);
-    if (!event) return;
-    setEvents((previous) => [{ ...event, archived: false }, ...previous]);
-    setArchivedEvents((previous) => previous.filter((item) => item.id !== id));
-    toast("Event restored.");
+  const restoreEvent = async (id) => {
+    const event = archivedEvents.find(item => item.id === id);
+    if (!event || busyEvent) return;
+    setBusyEvent(true);
+    try {
+      const saved = toFrontendEvent(await updateEvent(id, {
+        status: event.date < today ? "completed" : "upcoming",
+      }, adminToken));
+      setEvents(previous => [saved, ...previous.filter(item => item.id !== id)]);
+      setArchivedEvents(previous => previous.filter(item => item.id !== id));
+      toast("Event restored.");
+    } catch (error) {
+      toast(error.message || "Could not restore event.", "error");
+    } finally { setBusyEvent(false); }
   };
 
-  const permanentlyDeleteEvent = async (id) => {
-    const yes = await confirm({
-      title: "Delete permanently?",
-      message: "This archived event will be removed for good. This cannot be undone.",
-      confirmText: "Delete",
-      danger: true,
-    });
-    if (!yes) return;
-    setArchivedEvents((previous) => previous.filter((item) => item.id !== id));
-    toast("Event deleted.", "info");
-  };
+ const permanentlyDeleteEvent = async (id) => {
+  const yes = await confirm({
+    title: "Delete permanently?",
+    message:
+      "This event will be permanently removed from the database. This action cannot be undone.",
+    confirmText: "Delete",
+    danger: true,
+  });
 
+  if (!yes) return;
+
+  try {
+    await deleteEventApi(id, adminToken);
+
+    setArchivedEvents((previous) =>
+      previous.filter((event) => event.id !== id)
+    );
+
+    toast("Event permanently deleted.", "info");
+  } catch (error) {
+    toast(error.message, "error");
+  }
+};
   const filteredEvents = events.filter((event) => {
     if (eventFilter === "Upcoming") return event.date >= today;
     if (eventFilter === "Completed") return event.date < today;
@@ -154,7 +204,7 @@ function AdminDashboard() {
 
     setNotificationForm(emptyNotification);
     setShowNotificationForm(false);
-    toast("Notification published to students.");
+    toast("Notification saved locally.");
   };
 
   const deleteNotification = async (id) => {
@@ -224,31 +274,8 @@ function AdminDashboard() {
     navigate("/login", { replace: true });
   };
 
-  const resetSample = async () => {
-    const yes = await confirm({
-      title: "Reset to sample data?",
-      message:
-        "All current events, archived events, notifications and registrations will be replaced with the sample set.",
-      confirmText: "Reset",
-      danger: true,
-    });
-    if (!yes) return;
-    loadSampleData();
-    toast("Sample data loaded.");
-  };
-
-  const clearAll = async () => {
-    const yes = await confirm({
-      title: "Clear all event data?",
-      message:
-        "This removes every event, archived event, notification and registration. Student profiles are kept.",
-      confirmText: "Clear everything",
-      danger: true,
-    });
-    if (!yes) return;
-    clearEventData();
-    toast("All event data cleared.", "info");
-  };
+  const resetSample = () => toast("Demo reset is disabled for database events.", "info");
+  const clearAll = () => toast("Bulk deletion is disabled for database events.", "info");
 
   /* ---------- pieces ---------- */
 
@@ -292,13 +319,17 @@ function AdminDashboard() {
 
         {archived ? (
           <div className="event-card-actions">
-            <button type="button" onClick={() => restoreEvent(event.id)}>Restore Event</button>
-            <button type="button" className="delete-event" onClick={() => permanentlyDeleteEvent(event.id)}>
-              Delete Permanently
-            </button>
+            <button type="button" disabled={busyEvent || loadingEvents} onClick={() => restoreEvent(event.id)}>Restore Event</button>
+            <button
+  type="button"
+  className="delete-event"
+  onClick={() => permanentlyDeleteEvent(event.id)}
+>
+  Delete Permanently
+</button>
           </div>
         ) : (
-          <button type="button" className="delete-event" onClick={() => archiveEvent(event.id)}>
+          <button type="button" className="delete-event" disabled={busyEvent || loadingEvents} onClick={() => archiveEvent(event.id)}>
             Archive Event
           </button>
         )}
@@ -340,6 +371,8 @@ function AdminDashboard() {
             <div className="admin-top-avatar">A</div>
           </div>
         </header>
+        {loadingEvents && <div className="admin-content"><p className="admin-muted">Loading events...</p></div>}
+        {eventError && <div className="admin-content"><div className="admin-empty"><p role="alert">{eventError}</p><button type="button" onClick={() => setReloadKey(value => value + 1)}>Retry</button></div></div>}
 
         {activeTab === "Dashboard" && (
           <section className="admin-content">
@@ -388,7 +421,7 @@ function AdminDashboard() {
               <button type="button" onClick={() => goTo("Add Event")}>+ Add New Event</button>
             </div>
 
-            {events.length === 0 ? (
+            {loadingEvents || eventError ? null : events.length === 0 ? (
               <div className="admin-empty">
                 <span>📅</span>
                 <h3>No active events</h3>
@@ -474,7 +507,7 @@ function AdminDashboard() {
               <button type="button" onClick={() => goTo("Event History")}>Event History</button>
             </div>
 
-            {filteredEvents.length === 0 ? (
+            {loadingEvents || eventError ? null : filteredEvents.length === 0 ? (
               <div className="admin-empty">
                 <span>📅</span>
                 <h3>No events found</h3>
@@ -501,7 +534,7 @@ function AdminDashboard() {
               <p>{archivedEvents.length} archived event records</p>
             </div>
 
-            {archivedEvents.length === 0 ? (
+            {loadingEvents || eventError ? null : archivedEvents.length === 0 ? (
               <div className="admin-empty">
                 <span>🗂️</span>
                 <h3>No archived events yet</h3>
@@ -516,7 +549,7 @@ function AdminDashboard() {
         {activeTab === "Registrations" && (
           <section className="admin-content">
             <h2>Student Registrations</h2>
-            <p className="admin-muted">Every student who registered for an event, updated live.</p>
+            <p className="admin-muted">Student registrations stored locally until registration API integration.</p>
 
             <div className="admin-toolbar">
               <select
@@ -585,7 +618,7 @@ function AdminDashboard() {
             <div className="admin-section-heading">
               <div>
                 <h2>Notifications</h2>
-                <p>Publish announcements and updates for students.</p>
+                <p>Announcements stored locally until notification API integration.</p>
               </div>
               <button type="button" onClick={() => setShowNotificationForm((previous) => !previous)}>
                 {showNotificationForm ? "Cancel" : "+ Add Notification"}
@@ -709,8 +742,7 @@ function AdminDashboard() {
             <div className="demo-tools">
               <h3>Demo data</h3>
               <p>
-                Handy before a presentation: reload a fresh set of sample events, or start from a
-                completely empty system.
+                Demo reset and bulk deletion are disabled to protect database events.
               </p>
               <div className="demo-tools-actions">
                 <button type="button" onClick={resetSample}>↻ Reset to sample data</button>

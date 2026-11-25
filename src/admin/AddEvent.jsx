@@ -33,6 +33,7 @@ const initialForm = {
 const emptyImage = { name: "", data: "" };
 
 function AddEvent({ onAddEvent }) {
+  const [submitting, setSubmitting] = useState(false);
   const { toast } = useUI();
   const [form, setForm] = useState(initialForm);
   const [banner, setBanner] = useState(emptyImage);
@@ -67,8 +68,9 @@ function AddEvent({ onAddEvent }) {
     }
   };
 
-  const submitEvent = (e) => {
+  const submitEvent = async (e) => {
     e.preventDefault();
+    if (submitting) return;
 
     if (
       form.registrationStartDate > form.registrationDeadline ||
@@ -121,16 +123,19 @@ function AddEvent({ onAddEvent }) {
       archived: false,
     };
 
-    const saved = onAddEvent(newEvent);
-    if (!saved) {
-      toast("Could not save the event: browser storage is full. Try a smaller banner image.", "error");
-      return;
+    setSubmitting(true);
+    try {
+      const saved = await onAddEvent(newEvent);
+      if (!saved) throw new Error("Could not save event.");
+      toast("Your event has been added successfully!");
+      setForm(initialForm);
+      setBanner(emptyImage);
+      setQr(emptyImage);
+    } catch (error) {
+      toast(error.message || "Could not save event.", "error");
+    } finally {
+      setSubmitting(false);
     }
-
-    toast("Your event has been added successfully!");
-    setForm(initialForm);
-    setBanner(emptyImage);
-    setQr(emptyImage);
   };
 
   return (
@@ -593,7 +598,7 @@ function AddEvent({ onAddEvent }) {
           I agree to the terms and conditions of Campus Connect.
         </label>
 
-        <button className="submit-event-button" type="submit">
+        <button className="submit-event-button" type="submit" disabled={submitting}>
           ➤ &nbsp; Submit Event
         </button>
       </form>

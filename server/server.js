@@ -6,7 +6,6 @@ const mongoose = require("mongoose");
 
 dotenv.config();
 
-// Database connection
 const connectDB = require("./config/db");
 
 // Database models
@@ -17,8 +16,8 @@ require("./models/Notification");
 
 // Import routes
 const authRoutes = require("./routes/authRoutes");
+const eventRoutes = require("./routes/eventRoutes");
 
-// Initialize Express
 const app = express();
 
 // Middleware
@@ -26,12 +25,13 @@ app.use(cors({
     origin: "http://localhost:5173"
 }));
 
-app.use(express.json());
+app.use(express.json({ limit: "4mb" }));
 
-// Authentication routes
+// API routes
 app.use("/api/auth", authRoutes);
+app.use("/api/events", eventRoutes);
 
-// Default route
+// Home route
 app.get("/", (req, res) => {
     res.json({
         success: true,
@@ -39,7 +39,7 @@ app.get("/", (req, res) => {
     });
 });
 
-// Health check API
+// Health check
 app.get("/api/health", (req, res) => {
     res.json({
         success: true,
@@ -52,14 +52,16 @@ app.get("/api/health", (req, res) => {
     });
 });
 
-// Start server
 const PORT = process.env.PORT || 5000;
 
+// Start server
 const startServer = async () => {
     await connectDB();
 
     app.listen(PORT, () => {
-        console.log(`Server running on http://localhost:${PORT}`);
+        console.log(
+            `Server running on http://localhost:${PORT}`
+        );
     });
 };
 
