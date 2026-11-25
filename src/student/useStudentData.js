@@ -1,4 +1,6 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { getEvents } from "../services/eventApi";
+import { toFrontendEvent } from "../utils/eventMapper";
 import { KEYS } from "../config";
 import { useAuth } from "../context/useAuth";
 import { EMPTY_LIST, useStored } from "../utils/storage";
@@ -10,16 +12,59 @@ const byDate = (a, b) =>
 
 /** Active (non-archived) events created in the admin panel. */
 export function useEvents() {
-  const [events] = useStored(KEYS.events, EMPTY_LIST);
+  const [events, setEvents] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadEvents() {
+      try {
+        setLoading(true);
+        setError("");
+
+        const data = await getEvents();
+        const mappedEvents = data.map(toFrontendEvent);
+
+        if (active) {
+          setEvents(mappedEvents);
+        }
+      } catch (err) {
+        if (active) {
+          setError(err.message);
+          console.error("Failed to load events:", err);
+        }
+      } finally {
+        if (active) {
+          setLoading(false);
+        }
+      }
+    }
+
+    loadEvents();
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const upcoming = useMemo(() => {
     const today = todayISO();
-    return events.filter((event) => event.date && event.date >= today).sort(byDate);
+
+    return events
+      .filter(
+        (event) =>
+          !event.archived &&
+          event.status === "upcoming" &&
+          event.date &&
+          event.date >= today
+      )
+      .sort(byDate);
   }, [events]);
 
-  return { events, upcoming };
+  return { events, upcoming, loading, error };
 }
-
 /** Registrations of the logged-in student, plus register / cancel actions. */
 export function useRegistrations() {
   const { student } = useAuth();
