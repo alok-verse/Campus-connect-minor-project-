@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import Modal from "./Modal";
 import { useAuth } from "../context/useAuth";
@@ -11,7 +12,8 @@ export default function EventDetailsModal({ event, onClose, onViewTicket }) {
   const { toast } = useUI();
   const navigate = useNavigate();
   const location = useLocation();
-  const { mine, register } = useRegistrations();
+ const { mine, register, loading } = useRegistrations();
+const [registering, setRegistering] = useState(false);
 
   if (!event) return null;
 
@@ -22,14 +24,25 @@ export default function EventDetailsModal({ event, onClose, onViewTicket }) {
   const highlights = (event.highlights || "").split("\n").map((l) => l.trim()).filter(Boolean);
   const showQr = paid && event.payment !== "Offline" && event.qrData;
 
-  const handleRegister = () => {
-    const result = register(event);
+  const handleRegister = async () => {
+  if (registering || loading) return;
+
+  setRegistering(true);
+
+  try {
+    const result = await register(event);
+
     if (result.ok) {
       toast(`You're registered! Ticket ${result.ticket.ticketId}`);
     } else {
       toast(result.error, "error");
     }
-  };
+  } catch (err) {
+    toast(err.message, "error");
+  } finally {
+    setRegistering(false);
+  }
+};
 
   const goToLogin = () => {
     onClose();
@@ -54,9 +67,18 @@ export default function EventDetailsModal({ event, onClose, onViewTicket }) {
     );
   } else if (!student) {
     action = (
-      <button type="button" className="btn btn-primary btn-block" onClick={goToLogin}>
-        Login to Register →
-      </button>
+      <button
+  type="button"
+  className="btn btn-primary btn-block"
+  onClick={handleRegister}
+  disabled={registering || loading}
+>
+  {registering
+    ? "Registering..."
+    : loading
+    ? "Loading..."
+    : "Register Now →"}
+</button>
     );
   } else if (!access.ok) {
     action = (

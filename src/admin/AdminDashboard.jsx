@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
+import { getAllRegistrations } from "../services/registrationApi";
+import { toFrontendRegistration } from "../utils/registrationMapper";
 import { Link, useNavigate } from "react-router-dom";
 import AdminSidebar from "./AdminSidebar";
 import AddEvent from "./AddEvent";
@@ -41,7 +43,7 @@ function AdminDashboard() {
   const [reloadKey, setReloadKey] = useState(0);
   const [busyEvent, setBusyEvent] = useState(false);
   const [notifications, setNotifications] = useStored(KEYS.notifications, EMPTY_LIST);
-  const [registrations] = useStored(KEYS.registrations, EMPTY_LIST);
+  const [registrations, setRegistrations] = useState([]);
   const [darkMode, setDarkMode] = useStored(KEYS.adminTheme, false);
 
   const [eventFilter, setEventFilter] = useState("All");
@@ -88,7 +90,44 @@ function AdminDashboard() {
 
   const upcomingCount = events.filter((event) => event.date && event.date >= today).length;
   const completedCount = allEvents.filter((event) => event.date && event.date < today).length;
+useEffect(() => {
+  if (!adminToken) {
+    setRegistrations([]);
+    return;
+  }
 
+  let active = true;
+
+  async function loadRegistrations() {
+    try {
+      const data = await getAllRegistrations(adminToken);
+
+      const mapped = data
+        .map(toFrontendRegistration)
+        .filter((item) => item.status !== "cancelled");
+
+      // Oldest first, preserving existing dashboard sorting
+      mapped.sort((a, b) =>
+        a.registeredAtISO.localeCompare(b.registeredAtISO)
+      );
+
+      if (active) {
+        setRegistrations(mapped);
+      }
+    } catch (error) {
+      if (active) {
+        console.error("Failed to load registrations:", error);
+        toast(error.message, "error");
+      }
+    }
+  }
+
+  loadRegistrations();
+
+  return () => {
+    active = false;
+  };
+}, [adminToken, activeTab, toast]);
   const registrationCounts = useMemo(() => {
     const counts = {};
     registrations.forEach((item) => {
@@ -549,7 +588,9 @@ function AdminDashboard() {
         {activeTab === "Registrations" && (
           <section className="admin-content">
             <h2>Student Registrations</h2>
-            <p className="admin-muted">Student registrations stored locally until registration API integration.</p>
+            <p className="admin-muted">
+  View and manage student registrations stored in the database.
+</p>
 
             <div className="admin-toolbar">
               <select

@@ -3,6 +3,7 @@ const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
 const mongoose = require("mongoose");
+const registrationRoutes = require("./routes/registrationRoutes");
 
 dotenv.config();
 
@@ -30,6 +31,7 @@ app.use(express.json({ limit: "4mb" }));
 // API routes
 app.use("/api/auth", authRoutes);
 app.use("/api/events", eventRoutes);
+app.use("/api/registrations", registrationRoutes);
 
 // Home route
 app.get("/", (req, res) => {

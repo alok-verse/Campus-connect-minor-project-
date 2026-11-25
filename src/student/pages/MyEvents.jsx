@@ -25,8 +25,13 @@ export default function MyEvents() {
       danger: true,
     });
     if (!yes) return;
-    cancel(item.ticketId);
-    toast("Registration cancelled.", "info");
+   const result = await cancel(item.ticketId);
+
+if (result.ok) {
+  toast("Registration cancelled.", "info");
+} else {
+  toast(result.error, "error");
+}
   };
 
   return (
