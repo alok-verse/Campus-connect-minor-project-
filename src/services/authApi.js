@@ -35,3 +35,24 @@ export async function getCurrentUser(token) {
 
     return data.user;
 }
+
+export async function updateStudentProfile(profile, token) {
+    const response = await fetch(`${API_URL}/auth/profile`, {
+        method: "PATCH",
+        headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(profile)
+    });
+
+    const data = await response.json();
+
+    if (!response.ok || !data.success) {
+        throw new Error(
+            data.message || "Could not update profile."
+        );
+    }
+
+    return data.user;
+}

@@ -107,4 +107,90 @@ const getMe = async (req, res) => {
     });
 };
 
-module.exports = { login, getMe };
+
+// Update student profile
+const updateProfile = async (req, res) => {
+    try {
+        const { name, email } = req.body;
+
+        if (
+            typeof name !== "string" ||
+            !name.trim() ||
+            name.trim().length > 60
+        ) {
+            return res.status(400).json({
+                success: false,
+                message: "Please enter a valid full name."
+            });
+        }
+
+        if (
+            typeof email !== "string" ||
+            email.trim().length > 254 ||
+            !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())
+        ) {
+            return res.status(400).json({
+                success: false,
+                message: "Please enter a valid email address."
+            });
+        }
+
+        const user = await User.findOneAndUpdate(
+            {
+                _id: req.user._id,
+                role: "student",
+                isActive: true
+            },
+            {
+                $set: {
+                    name: name.trim(),
+                    email: email.trim().toLowerCase()
+                }
+            },
+            {
+                new: true,
+                runValidators: true
+            }
+        );
+
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: "Student account not found."
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: "Profile updated successfully!",
+            user: {
+                id: user._id,
+                name: user.name,
+                studentId: user.studentId,
+                email: user.email,
+                role: user.role,
+                department: user.department,
+                semester: user.semester
+            }
+        });
+
+    } catch (error) {
+
+        if (error.code === 11000) {
+            return res.status(409).json({
+                success: false,
+                message: "This email address is already in use."
+            });
+        }
+
+        console.error("Profile update error:", error.message);
+
+        return res.status(500).json({
+            success: false,
+            message: "Could not update profile."
+        });
+    }
+};
+
+module.exports = { login, getMe, updateProfile };
+
