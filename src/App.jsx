@@ -21,7 +21,6 @@ import Home from "./student/pages/Home";
 import Events from "./student/pages/Events";
 import MyEvents from "./student/pages/MyEvents";
 import Notifications from "./student/pages/Notifications";
-import Certificates from "./student/pages/Certificates";
 import EditProfile from "./student/pages/EditProfile";
 import About from "./student/pages/About";
 
@@ -71,14 +70,7 @@ export default function App() {
                     }
                   />
 
-                  <Route
-                    path="certificates"
-                    element={
-                      <RequireStudent>
-                        <Certificates />
-                      </RequireStudent>
-                    }
-                  />
+                  
 
                   <Route
                     path="profile"

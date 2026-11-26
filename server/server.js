@@ -23,8 +23,20 @@ const notificationRoutes = require("./routes/notificationRoutes");
 const app = express();
 
 // Middleware
+const allowedOrigins = [
+    "http://localhost:5173",
+    "http://localhost:4173",
+    process.env.FRONTEND_URL
+].filter(Boolean);
+
 app.use(cors({
-    origin: "http://localhost:5173"
+    origin: function (origin, callback) {
+        if (!origin || allowedOrigins.includes(origin)) {
+            return callback(null, true);
+        }
+
+        return callback(new Error("Not allowed by CORS"));
+    }
 }));
 
 app.use(express.json({ limit: "4mb" }));
