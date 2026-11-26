@@ -8,8 +8,8 @@ import "./AdminDashboard.css";
 import { KEYS } from "../config";
 import { useAuth } from "../context/useAuth";
 import { useUI } from "../context/useUI";
-import { EMPTY_LIST, useStored } from "../utils/storage";
-import { formatDate, formatTime, nowLabel, todayISO } from "../utils/dates";
+import { useStored } from "../utils/storage";
+import { formatDate, formatTime, todayISO } from "../utils/dates";
 import { downloadCSV } from "../utils/csv";
 import {
   getAdminEvents,
@@ -19,13 +19,20 @@ import {
   deleteEvent as deleteEventApi,
 } from "../services/eventApi";
 import { toBackendEvent, toFrontendEvent } from "../utils/eventMapper";
+import {
+  getNotifications,
+  createNotification,
+  deleteNotification as deleteNotificationApi,
+} from "../services/notificationApi";
+
+import {
+  toFrontendNotification,
+} from "../utils/notificationMapper";
 
 const emptyNotification = {
   title: "",
   message: "",
-  type: "General",
-  audience: "All Students",
-  year: "",
+  type: "announcement",
   relatedEvent: "",
 };
 
@@ -42,7 +49,11 @@ function AdminDashboard() {
   const [eventError, setEventError] = useState("");
   const [reloadKey, setReloadKey] = useState(0);
   const [busyEvent, setBusyEvent] = useState(false);
-  const [notifications, setNotifications] = useStored(KEYS.notifications, EMPTY_LIST);
+ const [notifications, setNotifications] = useState([]);
+const [loadingNotifications, setLoadingNotifications] = useState(true);
+const [notificationError, setNotificationError] = useState("");
+const [busyNotification, setBusyNotification] = useState(false);
+const [notificationReload, setNotificationReload] = useState(0);
   const [registrations, setRegistrations] = useState([]);
   const [darkMode, setDarkMode] = useStored(KEYS.adminTheme, false);
 
@@ -55,6 +66,47 @@ function AdminDashboard() {
   useEffect(() => {
     document.title = "Admin Panel | Campus Connect";
   }, []);
+
+// Load notifications from MongoDB
+useEffect(() => {
+  let active = true;
+
+  if (!adminToken) {
+    setNotifications([]);
+    setLoadingNotifications(false);
+    return;
+  }
+
+  async function loadNotifications() {
+    try {
+      setLoadingNotifications(true);
+      setNotificationError("");
+
+      const data = await getNotifications(adminToken);
+
+      if (active) {
+        setNotifications(
+          data.notifications.map(toFrontendNotification)
+        );
+      }
+    } catch (error) {
+      if (active) {
+        setNotificationError(error.message);
+      }
+    } finally {
+      if (active) {
+        setLoadingNotifications(false);
+      }
+    }
+  }
+
+  loadNotifications();
+
+  return () => {
+    active = false;
+  };
+}, [adminToken, notificationReload]);
+
 
   useEffect(() => {
     let active = true;
@@ -219,44 +271,98 @@ useEffect(() => {
     return true;
   });
 
-  /* ---------- notifications ---------- */
 
-  const publishNotification = (e) => {
-    e.preventDefault();
+/* ---------- notifications ---------- */
 
-    const saved = setNotifications((previous) => [
+// Publish notification to MongoDB
+const publishNotification = async (e) => {
+  e.preventDefault();
+
+  if (busyNotification) return;
+
+  if (!adminToken) {
+    toast("Please log in again.", "error");
+    return;
+  }
+
+  const title = notificationForm.title.trim();
+  const message = notificationForm.message.trim();
+
+  if (!title || !message) {
+    toast("Title and message are required.", "error");
+    return;
+  }
+
+  setBusyNotification(true);
+
+  try {
+    await createNotification(
       {
-        id: Date.now(),
-        ...notificationForm,
-        title: notificationForm.title.trim(),
-        message: notificationForm.message.trim(),
-        year: notificationForm.audience === "Specific Year" ? notificationForm.year : "",
-        createdAt: nowLabel(),
+        title,
+        message,
+        type: notificationForm.type,
+        ...(notificationForm.relatedEvent && {
+          eventId: notificationForm.relatedEvent,
+        }),
       },
-      ...previous,
-    ]);
+      adminToken
+    );
 
-    if (!saved) {
-      toast("Could not publish: browser storage is full.", "error");
-      return;
-    }
+    setNotificationReload((previous) => previous + 1);
 
     setNotificationForm(emptyNotification);
     setShowNotificationForm(false);
-    toast("Notification saved locally.");
-  };
 
-  const deleteNotification = async (id) => {
+    toast("Notification published successfully.");
+
+  } catch (error) {
+    toast(
+      error.message || "Failed to publish notification.",
+      "error"
+    );
+  } finally {
+    setBusyNotification(false);
+  }
+};
+
+// Delete notification from MongoDB
+const deleteNotification = async (id) => {
+  if (busyNotification) return;
+
+  setBusyNotification(true);
+
+  try {
     const yes = await confirm({
       title: "Delete notification?",
       message: "Students will no longer see this announcement.",
       confirmText: "Delete",
       danger: true,
     });
-    if (!yes) return;
-    setNotifications((previous) => previous.filter((item) => item.id !== id));
-  };
 
+    if (!yes) return;
+
+    await deleteNotificationApi(id, adminToken);
+
+    setNotifications((previous) =>
+      previous.filter((item) => item.id !== id)
+    );
+
+    setNotificationReload((previous) => previous + 1);
+
+    toast("Notification deleted successfully.", "info");
+
+  } catch (error) {
+    toast(
+      error.message || "Failed to delete notification.",
+      "error"
+    );
+  } finally {
+    setBusyNotification(false);
+  }
+};
+
+
+  
   /* ---------- registrations ---------- */
 
   const registrationEvents = useMemo(() => {
@@ -654,122 +760,236 @@ useEffect(() => {
           </section>
         )}
 
-        {activeTab === "Notifications" && (
-          <section className="admin-content">
-            <div className="admin-section-heading">
-              <div>
-                <h2>Notifications</h2>
-                <p>Announcements stored locally until notification API integration.</p>
-              </div>
-              <button type="button" onClick={() => setShowNotificationForm((previous) => !previous)}>
-                {showNotificationForm ? "Cancel" : "+ Add Notification"}
+{activeTab === "Notifications" && (
+  <section className="admin-content">
+
+    <div className="admin-section-heading">
+      <div>
+        <h2>Notifications</h2>
+        <p>
+          Publish and manage announcements for students.
+        </p>
+      </div>
+
+      <button
+        type="button"
+        disabled={busyNotification}
+        onClick={() =>
+          setShowNotificationForm((previous) => !previous)
+        }
+      >
+        {showNotificationForm
+          ? "Cancel"
+          : "+ Add Notification"}
+      </button>
+    </div>
+
+    {showNotificationForm && (
+      <form
+        className="notification-form"
+        onSubmit={publishNotification}
+      >
+        <h3>Create Notification</h3>
+
+        <label htmlFor="n-title">
+          Notification Title
+        </label>
+
+        <input
+          id="n-title"
+          required
+          maxLength={100}
+          value={notificationForm.title}
+          onChange={(e) =>
+            setNotificationForm({
+              ...notificationForm,
+              title: e.target.value,
+            })
+          }
+          placeholder="Enter notification title"
+        />
+
+        <label htmlFor="n-message">
+          Message
+        </label>
+
+        <textarea
+          id="n-message"
+          required
+          rows="4"
+          maxLength={500}
+          value={notificationForm.message}
+          onChange={(e) =>
+            setNotificationForm({
+              ...notificationForm,
+              message: e.target.value,
+            })
+          }
+          placeholder="Write your announcement..."
+        />
+
+        <label htmlFor="n-type">
+          Notification Type
+        </label>
+
+        <select
+          id="n-type"
+          value={notificationForm.type}
+          onChange={(e) =>
+            setNotificationForm({
+              ...notificationForm,
+              type: e.target.value,
+            })
+          }
+        >
+          <option value="announcement">
+            Announcement
+          </option>
+
+          <option value="event">
+            Event
+          </option>
+
+          <option value="reminder">
+            Reminder
+          </option>
+        </select>
+
+        <label htmlFor="n-audience">
+          Target Audience
+        </label>
+
+        <select id="n-audience" disabled>
+          <option>All Students</option>
+        </select>
+
+        <label htmlFor="n-event">
+          Related Event (Optional)
+        </label>
+
+        <select
+          id="n-event"
+          value={notificationForm.relatedEvent}
+          onChange={(e) =>
+            setNotificationForm({
+              ...notificationForm,
+              relatedEvent: e.target.value,
+            })
+          }
+        >
+          <option value="">
+            No related event
+          </option>
+
+          {allEvents.map((event) => (
+            <option
+              key={event.id}
+              value={event.id}
+            >
+              {event.title}
+            </option>
+          ))}
+        </select>
+
+        <button
+          type="submit"
+          disabled={busyNotification}
+        >
+          {busyNotification
+            ? "Publishing..."
+            : "Publish Notification"}
+        </button>
+      </form>
+    )}
+
+    {loadingNotifications && (
+      <div className="admin-empty">
+        <h3>Loading notifications...</h3>
+        <p>Fetching announcements from the database.</p>
+      </div>
+    )}
+
+    {notificationError && (
+      <div className="admin-empty">
+        <h3>Could not load notifications</h3>
+
+        <p role="alert">
+          {notificationError}
+        </p>
+
+        <button
+          type="button"
+          onClick={() =>
+            setNotificationReload((value) => value + 1)
+          }
+        >
+          Retry
+        </button>
+      </div>
+    )}
+
+    {!loadingNotifications && !notificationError && (
+      <div className="notification-list">
+
+        {notifications.length === 0 ? (
+          <div className="admin-empty">
+            <span>🔔</span>
+            <h3>No notifications published</h3>
+            <p>
+              Your published announcements will appear here.
+            </p>
+          </div>
+        ) : (
+          notifications.map((item) => (
+            <div
+              className="notification-card"
+              key={item.id}
+            >
+              <span
+                className={`notification-type ${(
+                  item.type || "Announcement"
+                ).toLowerCase()}`}
+              >
+                {item.type || "Announcement"}
+              </span>
+
+              <h3>{item.title}</h3>
+
+              <p>{item.message}</p>
+
+              <small>
+                All Students
+
+                {item.relatedEvent
+                  ? ` · ${item.relatedEvent}`
+                  : ""}
+
+                {" · "}
+
+                {item.createdAt}
+              </small>
+
+              <button
+                type="button"
+                className="delete-event"
+                disabled={busyNotification}
+                onClick={() =>
+                  deleteNotification(item.id)
+                }
+              >
+                Delete Notification
               </button>
             </div>
-
-            {showNotificationForm && (
-              <form className="notification-form" onSubmit={publishNotification}>
-                <h3>Create Notification</h3>
-                <label htmlFor="n-title">Notification Title</label>
-                <input
-                  id="n-title"
-                  required
-                  maxLength={100}
-                  value={notificationForm.title}
-                  onChange={(e) => setNotificationForm({ ...notificationForm, title: e.target.value })}
-                  placeholder="Enter notification title"
-                />
-                <label htmlFor="n-message">Message</label>
-                <textarea
-                  id="n-message"
-                  required
-                  rows="4"
-                  maxLength={500}
-                  value={notificationForm.message}
-                  onChange={(e) => setNotificationForm({ ...notificationForm, message: e.target.value })}
-                  placeholder="Write your announcement..."
-                />
-                <label htmlFor="n-type">Notification Type</label>
-                <select
-                  id="n-type"
-                  value={notificationForm.type}
-                  onChange={(e) => setNotificationForm({ ...notificationForm, type: e.target.value })}
-                >
-                  <option>General</option>
-                  <option>Important</option>
-                  <option>Urgent</option>
-                </select>
-                <label htmlFor="n-audience">Target Audience</label>
-                <select
-                  id="n-audience"
-                  value={notificationForm.audience}
-                  onChange={(e) => setNotificationForm({ ...notificationForm, audience: e.target.value })}
-                >
-                  <option>All Students</option>
-                  <option>Specific Year</option>
-                </select>
-                {notificationForm.audience === "Specific Year" && (
-                  <>
-                    <label htmlFor="n-year">Select Year</label>
-                    <select
-                      id="n-year"
-                      required
-                      value={notificationForm.year}
-                      onChange={(e) => setNotificationForm({ ...notificationForm, year: e.target.value })}
-                    >
-                      <option value="">Choose year</option>
-                      <option>1st Year</option>
-                      <option>2nd Year</option>
-                      <option>3rd Year</option>
-                      <option>4th Year</option>
-                    </select>
-                  </>
-                )}
-                <label htmlFor="n-event">Related Event (Optional)</label>
-                <select
-                  id="n-event"
-                  value={notificationForm.relatedEvent}
-                  onChange={(e) => setNotificationForm({ ...notificationForm, relatedEvent: e.target.value })}
-                >
-                  <option value="">No related event</option>
-                  {allEvents.map((event) => (
-                    <option key={event.id} value={event.title}>{event.title}</option>
-                  ))}
-                </select>
-                <button type="submit">Publish Notification</button>
-              </form>
-            )}
-
-            <div className="notification-list">
-              {notifications.length === 0 ? (
-                <div className="admin-empty">
-                  <span>🔔</span>
-                  <h3>No notifications published</h3>
-                  <p>Your published announcements will appear here.</p>
-                </div>
-              ) : (
-                notifications.map((item) => (
-                  <div className="notification-card" key={item.id}>
-                    <span className={`notification-type ${(item.type || "General").toLowerCase()}`}>
-                      {item.type || "General"}
-                    </span>
-                    <h3>{item.title}</h3>
-                    <p>{item.message}</p>
-                    <small>
-                      {item.audience}
-                      {item.year ? ` · ${item.year}` : ""}
-                      {item.relatedEvent ? ` · ${item.relatedEvent}` : ""}
-                      {" · "}{item.createdAt}
-                    </small>
-                    <button type="button" className="delete-event" onClick={() => deleteNotification(item.id)}>
-                      Delete Notification
-                    </button>
-                  </div>
-                ))
-              )}
-            </div>
-          </section>
+          ))
         )}
 
+      </div>
+    )}
+
+  </section>
+)}
+
+        
         {activeTab === "Profile" && (
           <section className="admin-content">
             <h2>Administrator Profile</h2>

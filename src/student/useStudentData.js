@@ -1,5 +1,4 @@
 import {
-  useCallback,
   useContext,
   useEffect,
   useMemo,
@@ -8,11 +7,9 @@ import {
 
 import { getEvents } from "../services/eventApi";
 import { toFrontendEvent } from "../utils/eventMapper";
-import { KEYS } from "../config";
-import { useAuth } from "../context/useAuth";
-import { EMPTY_LIST, useStored } from "../utils/storage";
 import { todayISO } from "../utils/dates";
 import { RegistrationContext } from "../context/registration-context";
+import { NotificationContext } from "../context/notification-context";
 
 const byDate = (a, b) =>
   `${a.date || ""} ${a.time || ""}`.localeCompare(
@@ -89,52 +86,15 @@ export function useRegistrations() {
 }
 
 // Existing notification functionality
+// Shared MongoDB notifications
 export function useNotifications() {
-  const { student } = useAuth();
+  const context = useContext(NotificationContext);
 
-  const [all] = useStored(
-    KEYS.notifications,
-    EMPTY_LIST
-  );
-
-  const [seenId, setSeenId] = useStored(
-    KEYS.notifSeenPrefix + (student?.id ?? "guest"),
-    0
-  );
-
-  const visible = useMemo(
-    () =>
-      student
-        ? all.filter(
-            (item) =>
-              item.audience !== "Specific Year" ||
-              item.year === student.year
-          )
-        : [],
-    [all, student]
-  );
-
-  const unread = useMemo(
-    () =>
-      visible.filter((item) => item.id > seenId).length,
-    [visible, seenId]
-  );
-
-  const markAllRead = useCallback(() => {
-    const newest = visible.reduce(
-      (max, item) => Math.max(max, item.id),
-      0
+  if (!context) {
+    throw new Error(
+      "useNotifications must be used inside NotificationProvider"
     );
+  }
 
-    if (newest > seenId) {
-      setSeenId(newest);
-    }
-  }, [visible, seenId, setSeenId]);
-
-  return {
-    visible,
-    unread,
-    seenId,
-    markAllRead,
-  };
+  return context;
 }

@@ -803,3 +803,78 @@
   .sbu .logo-icon { width: 26px; height: 26px; }
   .sbu .nav-actions { gap: 4px; }
 }
+
+/* ===================================
+   MongoDB Notification System
+=================================== */
+
+.notification-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 24px 0;
+}
+
+.notification-read-btn {
+  padding: 9px 16px;
+  border: 1px solid #6956d8;
+  border-radius: 8px;
+  background: transparent;
+  color: #6956d8;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.notification-read-btn:hover {
+  background: #6956d8;
+  color: #ffffff;
+}
+
+.notification-read-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.notice-unread {
+  border-left: 4px solid #6956d8;
+}
+
+.notification-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 15px;
+}
+
+/* Dark mode */
+
+.glass-theme .notification-read-btn {
+  color: #c4b5fd;
+  border-color: #a78bfa;
+}
+
+.glass-theme .notification-read-btn:hover {
+  background: #6956d8;
+  color: #ffffff;
+}
+
+.glass-theme .notice-unread {
+  border-left-color: #a78bfa;
+}
+
+/* Mobile responsive */
+
+@media (max-width: 600px) {
+  .notification-toolbar {
+    gap: 10px;
+  }
+
+  .notification-read-btn {
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+}

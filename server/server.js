@@ -18,6 +18,7 @@ require("./models/Notification");
 // Import routes
 const authRoutes = require("./routes/authRoutes");
 const eventRoutes = require("./routes/eventRoutes");
+const notificationRoutes = require("./routes/notificationRoutes");
 
 const app = express();
 
@@ -32,6 +33,7 @@ app.use(express.json({ limit: "4mb" }));
 app.use("/api/auth", authRoutes);
 app.use("/api/events", eventRoutes);
 app.use("/api/registrations", registrationRoutes);
+app.use("/api/notifications", notificationRoutes);
 
 // Home route
 app.get("/", (req, res) => {
